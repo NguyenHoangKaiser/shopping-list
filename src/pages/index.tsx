@@ -1,7 +1,7 @@
 import { ShoppingItem } from "@prisma/client";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ItemModal from "../components/ItemModal";
 import { trpc } from "../utils/trpc";
 import { HiX } from "react-icons/hi";
@@ -12,8 +12,15 @@ const Home: NextPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [checkedItem, setCheckedItem] = useState<ShoppingItem[]>([]);
 
-  // Fetch items on page load
-  const { data: itemsData, isLoading } = trpc.items.getAllItems.useQuery();
+  // Fetch all items
+  const { data: itemsData, isLoading } = trpc.items.getAllItems.useQuery(undefined, {
+    onSuccess: (data) => {
+      setItems(data);
+      // Filter out checked items
+      const checked = data.filter((item) => item.checked);
+      setCheckedItem(checked);
+    }
+  });
 
   // Delete item
   const { mutate: deleteItem } = trpc.items.deleteItem.useMutation({
@@ -37,12 +44,6 @@ const Home: NextPage = () => {
       }
     },
   });
-
-  useEffect(() => {
-    setItems(itemsData ?? []);
-    const checked = itemsData?.filter((item) => item.checked);
-    setCheckedItem(checked ?? []);
-  }, [itemsData]);
 
   if (!itemsData || isLoading) {
     return <div>Loading...</div>;
