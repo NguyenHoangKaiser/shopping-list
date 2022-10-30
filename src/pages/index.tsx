@@ -4,22 +4,49 @@ import Head from "next/head";
 import { useEffect, useState } from "react";
 import ItemModal from "../components/ItemModal";
 import { trpc } from "../utils/trpc";
+import { HiX } from "react-icons/hi";
+import { motion } from "framer-motion";
 
 const Home: NextPage = () => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [checkedItem, setCheckedItem] = useState<ShoppingItem[]>([]);
 
+  // Fetch items on page load
   const { data: itemsData, isLoading } = trpc.items.getAllItems.useQuery();
+
+  // Delete item
+  const { mutate: deleteItem } = trpc.items.deleteItem.useMutation({
+    onSuccess(shoppingItem) {
+      setItems((prev) => prev.filter((item) => item.id !== shoppingItem.id));
+    },
+  });
+
+  //Check item
+  const { mutate: toggleChecked } = trpc.items.toggleChecked.useMutation({
+    onSuccess(shoppingItem) {
+      // check if item is already in checkedItem array
+      if (checkedItem.some((item) => item.id === shoppingItem.id)) {
+        // if it is, remove it
+        setCheckedItem((prev) =>
+          prev.filter((item) => item.id !== shoppingItem.id)
+        );
+      } else {
+        // if it isn't, add it
+        setCheckedItem((prev) => [...prev, shoppingItem]);
+      }
+    },
+  });
 
   useEffect(() => {
     setItems(itemsData ?? []);
+    const checked = itemsData?.filter((item) => item.checked);
+    setCheckedItem(checked ?? []);
   }, [itemsData]);
 
   if (!itemsData || isLoading) {
     return <div>Loading...</div>;
   }
-
-  // console.log('This is data', items);
 
   return (
     <>
@@ -45,11 +72,44 @@ const Home: NextPage = () => {
           </button>
         </div>
         <ul className="mt-4">
-          {items.map((item) => (
-            <li key={item.id} className="flex items-center justify-between">
-              <span>{item.name}</span>
-            </li>
-          ))}
+          {items.map((item) => {
+            const { id, name } = item;
+
+            return (
+              <li key={id} className="flex items-center justify-between">
+                <div className="relative">
+                  <div className="pointer-events-none absolute inset-0 flex origin-left items-center justify-center">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: checkedItem.some((item) => item.id === id)
+                          ? "100%"
+                          : 0,
+                      }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="h-[2px] w-full translate-y-px bg-red-500"
+                    />
+                  </div>
+                  <span
+                    onClick={() => {
+                      toggleChecked({
+                        id,
+                        checked: checkedItem.some((item) => item.id === id)
+                          ? false
+                          : true,
+                      });
+                    }}
+                  >
+                    {name}
+                  </span>
+                </div>
+                <HiX
+                  onClick={() => deleteItem({ id })}
+                  className="cursor-pointer text-lg text-red-500"
+                />
+              </li>
+            );
+          })}
         </ul>
       </main>
     </>

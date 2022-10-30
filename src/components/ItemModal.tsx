@@ -2,7 +2,6 @@ import { ShoppingItem } from "@prisma/client";
 import React, { Dispatch, FC, SetStateAction, useState } from "react";
 import { trpc } from "../utils/trpc";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface Props {
   setModalOpen: Dispatch<SetStateAction<boolean>>;
   setItems: Dispatch<SetStateAction<ShoppingItem[]>>;
