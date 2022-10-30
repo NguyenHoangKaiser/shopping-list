@@ -1,16 +1,25 @@
 import { ShoppingItem } from "@prisma/client";
 import type { NextPage } from "next";
 import Head from "next/head";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import ItemModal from "../components/ItemModal";
 import { trpc } from "../utils/trpc";
 
 const Home: NextPage = () => {
-  const [items, setItems] = useState<ShoppingItem[]>([])
-  const { } = trpc.items.addItem.useMutation({
-    onSuccess: (item) => {
-      setItems((prev) => [...prev, item])
-    }
-  });
+  const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const { data: itemsData, isLoading } = trpc.items.getAllItems.useQuery();
+
+  useEffect(() => {
+    setItems(itemsData ?? []);
+  }, [itemsData]);
+
+  if (!itemsData || isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // console.log('This is data', items);
 
   return (
     <>
@@ -20,11 +29,16 @@ const Home: NextPage = () => {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
+      {modalOpen && (
+        <ItemModal setModalOpen={setModalOpen} setItems={setItems} />
+      )}
+
       <main className="mx-auto my-12 max-w-3xl">
         <div className="flex justify-between">
           <h2 className="text-2xl font-semibold">My Shopping List</h2>
           <button
             type="button"
+            onClick={() => setModalOpen(true)}
             className="rounded-md bg-violet-500 p-2 text-sm text-white transition hover:bg-violet-600"
           >
             Add shopping item
@@ -32,7 +46,8 @@ const Home: NextPage = () => {
         </div>
         <ul className="mt-4">
           {items.map((item) => (
-            <li key={item.id} className="flex justify-between items-center">
+            <li key={item.id} className="flex items-center justify-between">
+              <span>{item.name}</span>
             </li>
           ))}
         </ul>
